@@ -6,7 +6,7 @@ import boto3
 
 TABLE = os.environ["TABLE_NAME"]
 PK = "SESSION"
-STALE_MS = 10_000
+STALE_MS = 10_000  # frontend polls every 1.5s; this tolerates a few missed polls before dropping someone
 
 table = boto3.resource("dynamodb").Table(TABLE)
 
@@ -51,52 +51,59 @@ def response(status_code, body):
     }
 
 
+def noop(session, body):
+    pass  # GET /state still goes through the same save step, so pruned participants persist
+
+
+def do_join(session, body):
+    existing = session["participants"].get(body["clientId"])
+    session["participants"][body["clientId"]] = {
+        "name": body["name"],
+        "vote": existing["vote"] if existing else None,
+        "lastSeen": int(time.time() * 1000),
+    }
+
+
+def do_set_story(session, body):
+    session["story"] = body.get("story", "")
+
+
+def do_vote(session, body):
+    if body["clientId"] in session["participants"]:
+        session["participants"][body["clientId"]]["vote"] = body.get("vote")
+
+
+def do_reveal(session, body):
+    session["revealed"] = True
+
+
+def do_new_round(session, body):
+    session["story"] = ""
+    session["revealed"] = False
+    for p in session["participants"].values():
+        p["vote"] = None
+
+
+ROUTES = {
+    ("GET", "/state"): noop,
+    ("POST", "/join"): do_join,
+    ("POST", "/setStory"): do_set_story,
+    ("POST", "/vote"): do_vote,
+    ("POST", "/reveal"): do_reveal,
+    ("POST", "/newRound"): do_new_round,
+}
+
+
 def handler(event, context):
     method = event.get("requestContext", {}).get("http", {}).get("method", "GET")
     path = event.get("requestContext", {}).get("http", {}).get("path", "/")
     body = json.loads(event["body"]) if event.get("body") else {}
 
-    if method == "GET" and path == "/state":
-        session = prune_stale(get_session())
-        return response(200, to_public(session))
+    mutate = ROUTES.get((method, path))
+    if mutate is None:
+        return response(404, {"error": "not found"})
 
-    if method == "POST" and path == "/join":
-        session = prune_stale(get_session())
-        existing = session["participants"].get(body["clientId"])
-        session["participants"][body["clientId"]] = {
-            "name": body["name"],
-            "vote": existing["vote"] if existing else None,
-            "lastSeen": int(time.time() * 1000),
-        }
-        put_session(session)
-        return response(200, to_public(session))
-
-    if method == "POST" and path == "/setStory":
-        session = prune_stale(get_session())
-        session["story"] = body.get("story", "")
-        put_session(session)
-        return response(200, to_public(session))
-
-    if method == "POST" and path == "/vote":
-        session = prune_stale(get_session())
-        if body["clientId"] in session["participants"]:
-            session["participants"][body["clientId"]]["vote"] = body.get("vote")
-        put_session(session)
-        return response(200, to_public(session))
-
-    if method == "POST" and path == "/reveal":
-        session = prune_stale(get_session())
-        session["revealed"] = True
-        put_session(session)
-        return response(200, to_public(session))
-
-    if method == "POST" and path == "/newRound":
-        session = prune_stale(get_session())
-        session["story"] = ""
-        session["revealed"] = False
-        for p in session["participants"].values():
-            p["vote"] = None
-        put_session(session)
-        return response(200, to_public(session))
-
-    return response(404, {"error": "not found"})
+    session = prune_stale(get_session())
+    mutate(session, body)
+    put_session(session)
+    return response(200, to_public(session))

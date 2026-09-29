@@ -4,6 +4,7 @@ infra/*.tfstate
 infra/*.tfstate.backup
 infra/lambda.zip
 infra/*.tfplan
+infra/tfdestroyplan
 infra/crash.log
 infra/backend.hcl
 infra/terraform.tfvars
@@ -12,7 +13,11 @@ infra/terraform.tfvars
 node_modules/
 dist/
 
-# deploy.ps1 change-detection cache
+# Python
+__pycache__/
+*.pyc
+
+# deploy.mjs change-detection cache
 .frontend-deploy-hash
 
 # OS / editor
