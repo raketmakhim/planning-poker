@@ -30,36 +30,25 @@ aws s3api create-bucket --bucket <your-unique-bucket-name> --region <your-region
 aws s3api put-bucket-versioning --bucket <your-unique-bucket-name> --versioning-configuration Status=Enabled
 ```
 
-### 2. Configure the backend and variables
-
-Copy the example files and fill in your own values:
+### 2. Run the deploy script
 
 ```
-cp infra/backend.hcl.example infra/backend.hcl
-cp infra/terraform.tfvars.example infra/terraform.tfvars
+npm run deploy
 ```
 
-`frontend_bucket_name` in `terraform.tfvars` must be a globally unique S3 bucket name, for example `<your-project>-frontend-<your-aws-account-id>`.
+(Requires Node.js; works the same on Windows, Mac, and Linux. Runs `node deploy.mjs` directly.)
 
-### 3. Deploy everything
+On first run, it creates `infra/backend.hcl` and `infra/terraform.tfvars` from their `.example` files and stops, asking you to fill in the `<REPLACE_ME>` placeholders (mainly `frontend_bucket_name`, which must be a globally unique S3 bucket name, for example `<your-project>-frontend-<your-aws-account-id>`).
 
-One command builds the infra and the frontend:
+Run it again once those are filled in. It then:
 
-```
-.\deploy.ps1
-```
+- Runs `terraform init` (only if needed) and checks for infra changes, showing you the plan and asking for confirmation before applying anything (pass `--auto-approve` to skip the prompt)
+- Skips `terraform apply` entirely if nothing changed
+- Writes `frontend/.env` automatically from the deployed Function URL, no manual copying needed
+- Builds and uploads the frontend, but only if the source or `.env` actually changed since the last deploy
+- Invalidates the CloudFront cache and prints the live URL
 
-This runs `terraform init` and `apply` (creating DynamoDB, IAM, Lambda, S3, and CloudFront), then builds and uploads the frontend, invalidates the CloudFront cache, and prints the live URL.
-
-### 4. Point the frontend at your Lambda Function URL
-
-Once you have it:
-
-```
-cp frontend/.env.example frontend/.env
-```
-
-Fill in `VITE_API_URL` with the `function_url` Terraform output, then run `.\deploy.ps1` again to rebuild with it.
+Re-run `npm run deploy` any time you change infra or frontend code. It only does the work that's actually needed.
 
 ## Cost
 

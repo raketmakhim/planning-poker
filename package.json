@@ -1,0 +1,7 @@
+{
+  "name": "planning-poker",
+  "private": true,
+  "scripts": {
+    "deploy": "node deploy.mjs"
+  }
+}

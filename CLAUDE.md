@@ -14,11 +14,11 @@ Planning Poker: a single global voting session (no rooms, no accounts). Everyone
 - `npm run lint` — oxlint
 
 **Infra** (`infra/`):
-- `terraform init -upgrade` — after changing provider version constraints
+- `terraform init -backend-config=backend.hcl -upgrade` — after changing provider version constraints (backend bucket/region are passed via `backend.hcl`, gitignored, not hardcoded — see `backend.hcl.example`)
 - `terraform plan` / `terraform apply` — infra changes only (DynamoDB, IAM, Lambda, S3, CloudFront); state is remote (S3 backend, native S3 locking, no DynamoDB lock table)
 - Backend Lambda source is zipped straight from `backend/` by the `archive_file` data source in `lambda.tf` — no build step, just edit `backend/index.py` and re-apply
 
-**Deploy frontend content** (after infra exists): `.\deploy.ps1` from the repo root — builds, syncs `frontend/dist/` to S3, invalidates CloudFront, prints the live URL. This is separate from `terraform apply` on purpose (see plan.md for why) — Terraform never touches build output.
+**Deploy everything**: `npm run deploy` (runs `deploy.mjs`) from the repo root — one script does infra apply *and* frontend build/deploy, but Terraform still never touches the build output directly. `deploy.mjs` runs `terraform plan -detailed-exitcode` and only applies if there's an actual diff, then separately hashes the frontend source (`src/`, `public/`, config files, `.env`) and only rebuilds/syncs/invalidates if that hash changed since the last deploy (cached in the gitignored `.frontend-deploy-hash`). It also auto-generates `frontend/.env` from the live `function_url` Terraform output, and auto-creates `infra/backend.hcl`/`infra/terraform.tfvars` from their `.example` files on first run (stopping until `<REPLACE_ME>` placeholders are filled in).
 
 **Backend has no test harness** — verify changes by `terraform apply` then `curl` against the deployed Function URL (`terraform output -raw function_url` from `infra/`).
 
