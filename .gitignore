@@ -1,0 +1,22 @@
+# Terraform
+infra/.terraform/
+infra/*.tfstate
+infra/*.tfstate.backup
+infra/lambda.zip
+infra/*.tfplan
+infra/crash.log
+infra/backend.hcl
+infra/terraform.tfvars
+
+# Node (frontend also has its own .gitignore, this covers root just in case)
+node_modules/
+dist/
+
+# deploy.ps1 change-detection cache
+.frontend-deploy-hash
+
+# OS / editor
+.DS_Store
+
+# Claude Code local settings
+.claude/settings.local.json
