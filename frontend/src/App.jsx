@@ -4,6 +4,9 @@ import "./index.css";
 const API_URL = import.meta.env.VITE_API_URL;
 const DECK = ["1", "2", "3", "5", "8", "13", "21", "?"];
 const POLL_MS = 1500;
+const IDLE_MS = 10 * 60 * 1000;
+// Deliberate interaction only - no mousemove/scroll, those fire just from switching back to the tab.
+const ACTIVITY_EVENTS = ["mousedown", "keydown", "touchstart"];
 
 function getClientId() {
   let id = sessionStorage.getItem("clientId");
@@ -29,12 +32,23 @@ export default function App() {
   const [joined, setJoined] = useState(!!sessionStorage.getItem("name"));
   const [session, setSession] = useState({ story: "", revealed: false, participants: {} });
   const [storyDraft, setStoryDraft] = useState("");
+  const lastActivity = useRef(Date.now());
+
+  useEffect(() => {
+    function markActive() {
+      lastActivity.current = Date.now();
+    }
+    ACTIVITY_EVENTS.forEach((e) => window.addEventListener(e, markActive, { passive: true }));
+    return () => ACTIVITY_EVENTS.forEach((e) => window.removeEventListener(e, markActive));
+  }, []);
 
   useEffect(() => {
     if (!joined) return;
     let cancelled = false;
 
     async function heartbeat() {
+      // Interval keeps ticking while idle, this just skips the network call until activity resumes.
+      if (Date.now() - lastActivity.current > IDLE_MS) return;
       const state = await api("/join", { clientId: clientId.current, name });
       if (!cancelled) setSession(state);
     }

@@ -33,10 +33,11 @@ def prune_stale(session):
     return session
 
 
-def to_public(session):
+def to_public(session, viewer_id=None):
     participants = {}
     for cid, p in session["participants"].items():
-        if session["revealed"]:
+        # Hide other people's votes until reveal, but let viewers see their own pick so the UI can highlight it.
+        if session["revealed"] or cid == viewer_id:
             participants[cid] = {"name": p["name"], "voted": p["vote"] is not None, "vote": p["vote"]}
         else:
             participants[cid] = {"name": p["name"], "voted": p["vote"] is not None}
@@ -106,4 +107,4 @@ def handler(event, context):
     session = prune_stale(get_session())
     mutate(session, body)
     put_session(session)
-    return response(200, to_public(session))
+    return response(200, to_public(session, viewer_id=body.get("clientId")))

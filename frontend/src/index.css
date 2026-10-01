@@ -1,5 +1,5 @@
 :root {
-  color-scheme: light dark;
+  color-scheme: dark;
   font-family: system-ui, sans-serif;
 }
 
@@ -8,6 +8,8 @@ body {
   display: flex;
   justify-content: center;
   padding: 2rem 1rem;
+  background: #111111;
+  color: #eeeeee;
 }
 
 main {
@@ -59,7 +61,7 @@ button {
 }
 
 .card.selected {
-  border: 2px solid dodgerblue;
+  filter: brightness(0.7);
 }
 
 .controls {

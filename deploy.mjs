@@ -11,11 +11,14 @@ const frontend = join(root, "frontend");
 const autoApprove = process.argv.includes("--auto-approve");
 
 function run(cmd, args, cwd) {
-  // npm is a .cmd shim on Windows and needs the .cmd extension to run without a shell
-  // (shell:true would re-quote paths with spaces and break real .exe binaries like terraform/aws).
-  const resolvedCmd = process.platform === "win32" && cmd === "npm" ? "npm.cmd" : cmd;
-  const res = spawnSync(resolvedCmd, args, { cwd, stdio: "inherit" });
-  if (res.status !== 0) throw new Error(`${cmd} ${args.join(" ")} failed`);
+  // npm needs a shell on Windows (it's a .cmd, not a real exe); folding args into one string
+  // avoids Node's shell+array escaping warning, safe since these args are always fixed tokens.
+  const needsShell = process.platform === "win32" && cmd === "npm";
+  const res = needsShell
+    ? spawnSync(`${cmd} ${args.join(" ")}`, { cwd, stdio: "inherit", shell: true })
+    : spawnSync(cmd, args, { cwd, stdio: "inherit" });
+  if (res.error) throw new Error(`${cmd} ${args.join(" ")} failed to start: ${res.error.message}`);
+  if (res.status !== 0) throw new Error(`${cmd} ${args.join(" ")} failed (exit ${res.status})`);
   return res.status;
 }
 
