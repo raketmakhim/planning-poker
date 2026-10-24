@@ -111,10 +111,21 @@ async function main() {
     run("npm", ["run", "build"], frontend);
 
     console.log(`Syncing dist/ to s3://${bucket} ...`);
-    run("aws", ["s3", "sync", join(frontend, "dist"), `s3://${bucket}`, "--delete"], root);
+    const dist = join(frontend, "dist");
+    // Only assets/ is content-hashed, so only it can be cached for a year.
+    run("aws", ["s3", "sync", join(dist, "assets"), `s3://${bucket}/assets`, "--delete",
+      "--cache-control", "public,max-age=31536000,immutable"], root);
+    // Other public/ files (favicon etc.) keep their URL, so they get a short cache and are invalidated below.
+    run("aws", ["s3", "sync", dist, `s3://${bucket}`, "--delete", "--exclude", "assets/*", "--exclude", "index.html",
+      "--cache-control", "public,max-age=3600"], root);
+    // index.html goes last so it never points at bundles that aren't uploaded yet, and must always revalidate.
+    run("aws", ["s3", "cp", join(dist, "index.html"), `s3://${bucket}/index.html`,
+      "--cache-control", "no-cache"], root);
 
-    console.log("Invalidating CloudFront cache...");
-    run("aws", ["cloudfront", "create-invalidation", "--distribution-id", distributionId, "--paths", "/*"], root);
+    console.log("Invalidating CloudFront entry points...");
+    // "/" is cached separately from "/index.html" (default root object), so both need invalidating.
+    const stable = readdirSync(dist, { withFileTypes: true }).filter((f) => f.isFile()).map((f) => `/${f.name}`);
+    run("aws", ["cloudfront", "create-invalidation", "--distribution-id", distributionId, "--paths", "/", ...stable], root);
 
     writeFileSync(hashFile, currentHash);
   }

@@ -7,4 +7,10 @@ resource "aws_dynamodb_table" "session" {
     name = "pk"
     type = "S"
   }
+
+  # Wallet items carry expires_at; the SESSION item has none, so it never expires.
+  ttl {
+    attribute_name = "expires_at"
+    enabled        = true
+  }
 }

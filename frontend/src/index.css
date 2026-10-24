@@ -1,6 +1,13 @@
 :root {
   color-scheme: dark;
   font-family: system-ui, sans-serif;
+  --felt: #12352a;
+  --felt-dark: #0a1f18;
+  --cream: #f4ecd8;
+  --ink: #1d1a14;
+  --brass: #c9a24b;
+  --burgundy: #7a1f2b;
+  --serif: "Fraunces", Georgia, serif;
 }
 
 body {
@@ -8,28 +15,32 @@ body {
   display: flex;
   justify-content: center;
   padding: 2rem 1rem;
-  background: #111111;
-  color: #eeeeee;
+  min-height: 100vh;
+  box-sizing: border-box;
+  background: radial-gradient(ellipse at 50% 30%, var(--felt) 0%, var(--felt-dark) 80%) fixed;
+  color: var(--cream);
 }
 
 main {
   width: 100%;
-  max-width: 480px;
+  max-width: 720px;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.5rem;
 }
 
 h1 {
-  font-size: 1.5rem;
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 2rem;
+  letter-spacing: 0.02em;
   text-align: center;
+  color: var(--brass);
+  margin: 0.5rem 0 0;
 }
 
-.join-screen form {
-  display: flex;
-  gap: 0.5rem;
-}
-
+.join-screen form,
 .story-form {
   display: flex;
   gap: 0.5rem;
@@ -37,51 +48,376 @@ h1 {
 
 input {
   flex: 1;
-  padding: 0.5rem;
-  font-size: 1rem;
+  padding: 0.6rem 0.2rem;
+  font: inherit;
+  color: var(--cream);
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid rgba(244, 236, 216, 0.4);
+  outline: none;
+}
+
+input:focus {
+  border-bottom-color: var(--brass);
+}
+
+input::placeholder {
+  color: rgba(244, 236, 216, 0.45);
+  font-style: italic;
 }
 
 button {
-  padding: 0.5rem 1rem;
-  font-size: 1rem;
+  font: inherit;
   cursor: pointer;
+  padding: 0.5rem 1.1rem;
+  color: var(--cream);
+  background: transparent;
+  border: 1px solid rgba(244, 236, 216, 0.45);
+  border-radius: 2px;
+  transition: background 0.15s, border-color 0.15s;
 }
 
+button:hover {
+  border-color: var(--cream);
+}
+
+button:focus-visible {
+  outline: 2px solid var(--brass);
+  outline-offset: 2px;
+}
+
+button.primary,
+.join-screen button {
+  color: var(--ink);
+  background: var(--brass);
+  border-color: var(--brass);
+  font-weight: 600;
+}
+
+button.primary:hover,
+.join-screen button:hover {
+  background: #d9b45a;
+}
+
+/* Deck: a loose fan, selected card lifts out */
 .deck {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
   justify-content: center;
+  padding: 1.5rem 0 0.5rem;
 }
 
 .card {
-  width: 3rem;
-  height: 4rem;
-  font-size: 1.2rem;
+  position: relative;
+  width: 3.4rem;
+  height: 4.9rem;
+  margin: 0 -0.2rem;
+  padding: 0;
+  color: var(--ink);
+  background: var(--cream);
+  border: 0;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+  transform: translateY(calc(var(--i) * var(--i) * 1.5px)) rotate(calc(var(--i) * 3deg));
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border: 1px solid rgba(29, 26, 20, 0.25);
+  border-radius: 4px;
+  pointer-events: none;
+}
+
+.card:hover {
+  transform: translateY(-8px) rotate(calc(var(--i) * 3deg));
+  box-shadow: 0 8px 14px rgba(0, 0, 0, 0.5);
+  border-color: transparent;
+  z-index: 1;
 }
 
 .card.selected {
-  filter: brightness(0.7);
+  transform: translateY(-18px) rotate(calc(var(--i) * 3deg));
+  box-shadow: 0 0 0 2px var(--brass), 0 10px 18px rgba(0, 0, 0, 0.55);
+  z-index: 2;
+}
+
+.card .face {
+  font-family: var(--serif);
+  font-weight: 700;
+  font-size: 1.5rem;
+}
+
+.card .corner {
+  position: absolute;
+  top: 6px;
+  left: 7px;
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 0.7rem;
+  line-height: 1;
+}
+
+.card .corner.br {
+  top: auto;
+  left: auto;
+  bottom: 6px;
+  right: 7px;
+  transform: rotate(180deg);
 }
 
 .controls {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.75rem;
   justify-content: center;
 }
 
-.participants {
+/* Roster: stable, never reorders. Table: only filled on reveal. */
+.layout {
+  display: grid;
+  grid-template-columns: 9rem 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+.roster {
   list-style: none;
+  margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.6rem;
 }
 
-.participants li {
+.roster li {
   display: flex;
-  justify-content: space-between;
-  padding: 0.4rem 0.6rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.9rem;
+  letter-spacing: 0.03em;
+}
+
+.roster .dot {
+  width: 1.1rem;
+  height: 1.55rem;
+  box-sizing: border-box;
+  border-radius: 3px;
+  border: 1.5px dashed rgba(244, 236, 216, 0.35);
+}
+
+.roster .waiting {
+  opacity: 0.55;
+}
+
+.roster .voted .dot {
+  border: 0;
+  background: repeating-linear-gradient(45deg, var(--burgundy) 0 2px, #8d2a37 2px 4px);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5), inset 0 0 0 2px var(--cream), inset 0 0 0 3px var(--burgundy);
+}
+
+.center {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.table {
+  min-height: 8.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid rgba(244, 236, 216, 0.15);
+  border-radius: 999px / 40%;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.hint {
+  margin: 0;
+  font-family: var(--serif);
+  font-style: italic;
+  opacity: 0.6;
+}
+
+.table-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.table-card .face {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.2rem;
+  height: 4.5rem;
+  color: var(--ink);
+  background: var(--cream);
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+  font-family: var(--serif);
+  font-weight: 700;
+  font-size: 1.4rem;
+}
+
+.name {
+  font-size: 0.8rem;
+  letter-spacing: 0.03em;
+}
+
+.summary {
+  text-align: center;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+.summary strong {
+  font-style: normal;
+  font-size: 1.8rem;
+  color: var(--brass);
+  margin-left: 0.4rem;
+}
+
+@media (max-width: 560px) {
+  .layout {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .roster {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.6rem 1.2rem;
+  }
+}
+
+/* Chips: solid disc with a dashed rim, like the edge spots on a real chip */
+.bet {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.bet-label {
+  font-family: var(--serif);
+  font-style: italic;
+  margin-right: 0.4rem;
+}
+
+.bet-label strong {
+  font-style: normal;
+  color: var(--brass);
+}
+
+.chip {
+  --c: var(--cream);
+  --edge: var(--ink);
+  --text: var(--ink);
+  width: 3rem;
+  height: 3rem;
+  padding: 0;
+  border-radius: 50%;
+  color: var(--text);
+  background: var(--c);
+  border: 3px dashed var(--edge);
+  box-shadow: inset 0 0 0 3px var(--c), 0 2px 4px rgba(0, 0, 0, 0.5);
+  font-family: var(--serif);
+  font-weight: 700;
+  transition: transform 0.15s;
+}
+
+.chip:hover:not(:disabled) {
+  transform: translateY(-3px);
+  border-color: var(--edge);
+}
+
+.chip:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.chip.c20 { --c: var(--burgundy); --edge: var(--cream); --text: var(--cream); }
+.chip.c50 { --c: #1f5f5b; --edge: var(--cream); --text: var(--cream); }
+.chip.c100 { --c: var(--ink); --edge: var(--brass); --text: var(--brass); }
+
+button:disabled.ghost {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.roster-name {
+  flex: 1;
+}
+
+.roster .chips {
+  font-family: var(--serif);
+  font-size: 0.8rem;
+  color: var(--brass);
+}
+
+.delta {
+  font-family: var(--serif);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.delta.win {
+  color: #7fd18b;
+}
+
+.delta.lose {
+  color: #e0786f;
+}
+
+/* Standings: players by chip count, leader in brass */
+.side {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.standings h2 {
+  margin: 0 0 0.5rem;
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 1rem;
+  color: var(--brass);
+}
+
+.standings ol {
+  margin: 0;
+  padding: 0.6rem 0 0 1.2rem;
+  border-top: 1px solid rgba(244, 236, 216, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-family: var(--serif);
+  font-size: 0.85rem;
+}
+
+.standings li {
+  padding-left: 0.3rem;
+}
+
+.standings li::marker {
+  color: rgba(244, 236, 216, 0.5);
+}
+
+.standings li:first-child {
+  color: var(--brass);
+  font-weight: 700;
+}
+
+.standings .chips {
+  float: right;
 }
