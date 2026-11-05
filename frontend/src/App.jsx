@@ -138,7 +138,18 @@ export default function App() {
     return act("/setStory", { story: storyDraft });
   };
   const handleReveal = () => act("/reveal", {});
-  const handleNewRound = () => act("/newRound", {});
+  // Two-step button instead of window.confirm, which can't be themed. Reverts after 3s.
+  const [confirmNew, setConfirmNew] = useState(false);
+  useEffect(() => {
+    if (!confirmNew) return;
+    const t = setTimeout(() => setConfirmNew(false), 3000);
+    return () => clearTimeout(t);
+  }, [confirmNew]);
+  const handleNewRound = () => {
+    if (!confirmNew) return setConfirmNew(true);
+    setConfirmNew(false);
+    act("/newRound", {});
+  };
 
   if (!joined) {
     return (
@@ -174,6 +185,7 @@ export default function App() {
 
   return (
     <main className="board">
+      <button className="ghost back" onClick={() => setJoined(false)}>← Back</button>
       <h1>Planning Poker</h1>
 
       <form className="story-form" onSubmit={handleStorySubmit}>
@@ -237,8 +249,7 @@ export default function App() {
 
           <div className="controls">
             <button className="primary" onClick={handleReveal}>Reveal</button>
-            <button className="ghost" onClick={handleNewRound}>New round</button>
-          </div>
+            <button className="ghost" onClick={handleNewRound}>{confirmNew ? "Clear all votes?" : "New round"}</button>          </div>
 
           <div className="bet">
             <span className="bet-label">Bet <strong>{myBet}</strong> of {myChips}</span>

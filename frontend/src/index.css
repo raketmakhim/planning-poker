@@ -349,6 +349,25 @@ button.primary:hover,
 .chip.c50 { --c: #1f5f5b; --edge: var(--cream); --text: var(--cream); }
 .chip.c100 { --c: var(--ink); --edge: var(--brass); --text: var(--brass); }
 
+.board {
+  position: relative;
+}
+
+.back {
+  position: absolute;
+  top: 1rem;
+  left: 0;
+  border: none;
+  background: none;
+  padding: 0.25rem 0;
+  font-size: 0.85rem;
+  opacity: 0.6;
+}
+
+.back:hover {
+  opacity: 1;
+}
+
 button:disabled.ghost {
   opacity: 0.4;
   cursor: not-allowed;
