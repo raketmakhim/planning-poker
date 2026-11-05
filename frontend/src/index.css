@@ -353,6 +353,32 @@ button.primary:hover,
   position: relative;
 }
 
+/* Styled like the 100 chip: ink disc, dashed brass rim. button.mute outranks .join-screen button. */
+button.mute {
+  position: fixed;
+  bottom: 1rem;
+  right: 1rem;
+  z-index: 10;
+  width: 3rem;
+  height: 3rem;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--brass);
+  background: var(--ink);
+  border: 3px dashed var(--brass);
+  box-shadow: inset 0 0 0 3px var(--ink), 0 2px 4px rgba(0, 0, 0, 0.5);
+  font-weight: normal;
+  transition: transform 0.15s;
+}
+
+button.mute:hover {
+  background: var(--ink);
+  border-color: var(--brass);
+  transform: translateY(-3px);
+}
+
 .back {
   position: absolute;
   top: 1rem;

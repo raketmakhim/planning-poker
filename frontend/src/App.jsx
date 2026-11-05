@@ -20,6 +20,21 @@ function getClientId() {
   return id;
 }
 
+// A new Audio per play so rapid hovers overlap. Blocked or missing files must never break the UI.
+let muted = false;
+try {
+  muted = localStorage.getItem("muted") === "1";
+} catch {
+  // storage blocked: start unmuted
+}
+
+function sfx(file, volume = 0.5) {
+  if (muted) return;
+  const a = new Audio(`/${file}.mp3`);
+  a.volume = volume;
+  a.play().catch(() => {});
+}
+
 async function api(path, body) {
   const res = await fetch(`${API_URL}${path}`, {
     method: body ? "POST" : "GET",
@@ -38,6 +53,17 @@ export default function App() {
   const lastActivity = useRef(Date.now());
   const syncs = useRef(0);
   const wasRevealed = useRef(false);
+  const [isMuted, setIsMuted] = useState(muted);
+
+  function toggleMute() {
+    muted = !muted;
+    setIsMuted(muted);
+    try {
+      localStorage.setItem("muted", muted ? "1" : "0");
+    } catch {
+      // not persisted, still muted for this visit
+    }
+  }
 
   // Cards fly from each person's roster card to their spot on the table (FLIP).
   useLayoutEffect(() => {
@@ -46,6 +72,7 @@ export default function App() {
     // syncs < 2: first poll after load, so a round that was already revealed doesn't replay.
     if (!session.revealed || was || syncs.current < 2) return;
     document.querySelectorAll(".table-card").forEach((card, n) => {
+      setTimeout(() => sfx("reveal"), n * 90); // one per card, in step with its animation delay
       const dot = document.querySelector(`.roster [data-id="${card.dataset.id}"] .dot`);
       if (!dot) return;
       const from = dot.getBoundingClientRect();
@@ -119,6 +146,7 @@ export default function App() {
     sessionStorage.setItem("name", name.trim());
     setName(name.trim());
     setJoined(true);
+    sfx("entry-music", 0.25);
   }
 
   // Every action returns the new state. An error body ({error: "busy"}) has no participants and must not replace it.
@@ -151,9 +179,19 @@ export default function App() {
     act("/newRound", {});
   };
 
+  const muteButton = (
+    <button className="mute" onClick={toggleMute} aria-label={isMuted ? "Unmute sounds" : "Mute sounds"}>
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M11 5 6 9H3v6h3l5 4z" fill="currentColor" />
+        {isMuted ? <path d="m16 9 5 6m0-6-5 6" /> : <path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" />}
+      </svg>
+    </button>
+  );
+
   if (!joined) {
     return (
       <main className="join-screen">
+        {muteButton}
         <h1>Planning Poker</h1>
         <form onSubmit={handleJoin}>
           <input
@@ -185,6 +223,7 @@ export default function App() {
 
   return (
     <main className="board">
+      {muteButton}
       <button className="ghost back" onClick={() => setJoined(false)}>← Back</button>
       <h1>Planning Poker</h1>
 
@@ -249,7 +288,8 @@ export default function App() {
 
           <div className="controls">
             <button className="primary" onClick={handleReveal}>Reveal</button>
-            <button className="ghost" onClick={handleNewRound}>{confirmNew ? "Clear all votes?" : "New round"}</button>          </div>
+            <button className="ghost" onClick={handleNewRound}>{confirmNew ? "Clear all votes?" : "New round"}</button>
+          </div>
 
           <div className="bet">
             <span className="bet-label">Bet <strong>{myBet}</strong> of {myChips}</span>
@@ -258,7 +298,10 @@ export default function App() {
                 key={v}
                 className={`chip c${v}`}
                 disabled={session.revealed || myBet + v > myChips}
-                onClick={() => handleBet(myBet + v)}
+                onClick={() => {
+                  sfx("chip");
+                  handleBet(myBet + v);
+                }}
               >
                 {v}
               </button>
@@ -272,7 +315,11 @@ export default function App() {
                 key={value}
                 className={myVote === value ? "card selected" : "card"}
                 style={{ "--i": i - (DECK.length - 1) / 2 }}
-                onClick={() => handleVote(value)}
+                onMouseEnter={() => sfx("hover", 0.3)}
+                onClick={() => {
+                  sfx("select");
+                  handleVote(value);
+                }}
               >
                 <span className="corner">{value}</span>
                 <span className="face">{value}</span>
